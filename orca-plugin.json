@@ -15,7 +15,7 @@
       {
         "id": "workflowy-sidebar",
         "title": "Workflowy",
-        "icon": "file-text",
+        "icon": "layers",
         "entry": "src/panel.html"
       }
     ],
