@@ -16,6 +16,7 @@ export type WfLoadResult = {
 declare module 'orca' {
   interface PluginRequests {
     'wf.load': { input: { refresh?: boolean }; output: WfLoadResult }
+    'wf.loadChildren': { input: { parentId: string }; output: WfLoadResult }
     'wf.createNode': {
       input: { parentId?: string | null; name: string }
       output: WfLoadResult

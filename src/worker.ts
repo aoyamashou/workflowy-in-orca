@@ -90,9 +90,45 @@ async function loadOutline(orca: OrcaWorkerApi, refresh = false): Promise<WfLoad
   }
 }
 
+function mergeChildren(nodes: WfNode[], parentId: string, children: WfNode[]): WfNode[] {
+  return nodes.map((node) => {
+    if (node.id === parentId) {
+      return { ...node, children }
+    }
+    if (node.children && node.children.length > 0) {
+      return { ...node, children: mergeChildren(node.children, parentId, children) }
+    }
+    return node
+  })
+}
+
 export default function activate(orca: OrcaWorkerApi): void {
   orca.panels.handle('wf.load', async (input) => {
     return loadOutline(orca, Boolean(input?.refresh))
+  })
+
+  orca.panels.handle('wf.loadChildren', async ({ parentId }) => {
+    const { apiKey } = await getConfig(orca)
+    if (!apiKey) return { configured: false, nodes: [] }
+    try {
+      const data = await wfFetch(apiKey, `/nodes?parent_id=${encodeURIComponent(parentId)}`)
+      const children = Array.isArray(data.nodes)
+        ? (data.nodes as RawWfNode[]).map(normalizeNode)
+        : []
+      const cached = await orca.storage.get(CACHE_KEY)
+      const current = Array.isArray(cached) ? (cached as unknown as WfNode[]) : []
+      const updated = mergeChildren(current, parentId, children)
+      await orca.storage.set(CACHE_KEY, updated as unknown as JsonValue)
+      return { configured: true, nodes: updated }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const cached = await orca.storage.get(CACHE_KEY)
+      return {
+        configured: true,
+        nodes: Array.isArray(cached) ? (cached as unknown as WfNode[]) : [],
+        error: message
+      }
+    }
   })
 
   orca.panels.handle('wf.createNode', async ({ parentId, name }) => {

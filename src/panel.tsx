@@ -2,7 +2,6 @@ import {
   atom,
   Badge,
   Button,
-  Checkbox,
   Heading,
   Input,
   plugin,
@@ -97,8 +96,22 @@ async function removeNode(id: string): Promise<void> {
   }
 }
 
-function toggleExpand(id: string): void {
-  update(expandedIds, (prev) => ({ ...prev, [id]: !prev[id] }))
+async function toggleExpand(node: WfNode): Promise<void> {
+  const isExpanded = Boolean(read(expandedIds)[node.id])
+  if (isExpanded) {
+    update(expandedIds, (prev) => ({ ...prev, [node.id]: false }))
+    return
+  }
+  update(expandedIds, (prev) => ({ ...prev, [node.id]: true }))
+  if (!node.children || node.children.length === 0) {
+    set(loading, true)
+    try {
+      const res = await plugin.request('wf.loadChildren', { parentId: node.id })
+      set(state, res)
+    } finally {
+      set(loading, false)
+    }
+  }
 }
 
 function filterNodes(nodes: WfNode[], query: string): WfNode[] {
@@ -126,18 +139,16 @@ function renderNode(node: WfNode, depth: number, query: string) {
     <Stack key={node.id} gap="xs">
       <Row gap="xs" align="center">
         {depth > 0 && <Text muted size="xs">{'  '.repeat(depth)}</Text>}
-        {hasChildren ? (
-          <Button variant="ghost" size="xs" onPress={() => toggleExpand(node.id)}>
-            {expanded ? '▾' : '▸'}
-          </Button>
-        ) : (
-          <Text muted size="xs">•</Text>
-        )}
-        <Checkbox
-          label=""
-          checked={Boolean(node.completed)}
-          onChange={(checked: boolean) => void toggleNode(node.id, checked)}
-        />
+        <Button variant="ghost" size="xs" onPress={() => void toggleExpand(node)}>
+          {expanded ? '▾' : '▸'}
+        </Button>
+        <Button
+          variant="ghost"
+          size="xs"
+          onPress={() => void toggleNode(node.id, !node.completed)}
+        >
+          {node.completed ? '☑' : '☐'}
+        </Button>
         {isEditing ? (
           <Row gap="xs" align="center">
             <Input
