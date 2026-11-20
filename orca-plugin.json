@@ -16,8 +16,7 @@
         "id": "workflowy-sidebar",
         "title": "Workflowy",
         "icon": "file-text",
-        "entry": "src/panel.tsx",
-        "ui": "components"
+        "entry": "src/panel.html"
       }
     ],
     "settings": [

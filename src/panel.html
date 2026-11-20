@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workflowy</title>
+  <style>
+    :root {
+      --bg: var(--orca-background, #ffffff);
+      --fg: var(--orca-foreground, #2c2c2c);
+      --muted: var(--orca-muted-foreground, #8c8c8c);
+      --border: var(--orca-border, rgba(128, 128, 128, 0.18));
+      --hover: rgba(128, 128, 128, 0.1);
+      --bullet: #6e6e6e;
+      --bullet-halo: rgba(128, 128, 128, 0.16);
+      --guide: rgba(128, 128, 128, 0.18);
+      --accent: var(--orca-primary, #4b8bf4);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 22px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      padding: 10px 14px 32px;
+      max-width: 100%;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .search-input {
+      flex: 1;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--fg);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    .icon-btn {
+      height: 28px;
+      padding: 0 8px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .icon-btn:hover {
+      background: var(--hover);
+      color: var(--fg);
+    }
+
+    .breadcrumbs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .crumb {
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .crumb:hover {
+      background: var(--hover);
+      color: var(--fg);
+    }
+
+    .zoom-title {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 30px;
+      margin: 4px 0 12px 4px;
+      color: var(--fg);
+    }
+
+    .node-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 2px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .node-row:hover {
+      background: var(--hover);
+    }
+
+    .expand-btn {
+      width: 16px;
+      height: 22px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 0;
+      opacity: 0.7;
+    }
+
+    .expand-btn:hover {
+      opacity: 1;
+      color: var(--fg);
+    }
+
+    .bullet-btn {
+      width: 18px;
+      height: 22px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      border-radius: 50%;
+    }
+
+    .bullet-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--bullet);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .bullet-btn:hover .bullet-dot {
+      box-shadow: 0 0 0 5px var(--bullet-halo);
+      transform: scale(1.15);
+    }
+
+    .node-content {
+      flex: 1;
+      min-width: 0;
+      padding: 0 4px;
+      word-break: break-word;
+      cursor: text;
+    }
+
+    .node-content.completed {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .node-edit-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 15px;
+      line-height: 22px;
+      padding: 0;
+      margin: 0;
+    }
+
+    .node-actions {
+      display: none;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .node-row:hover .node-actions {
+      display: flex;
+    }
+
+    .action-btn {
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .action-btn:hover {
+      background: var(--bullet-halo);
+      color: var(--fg);
+    }
+
+    .children-wrap {
+      margin-left: 17px;
+      padding-left: 8px;
+      border-left: 1px solid var(--guide);
+    }
+
+    .add-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 4px 4px 22px;
+      margin-top: 4px;
+    }
+
+    .add-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 20px;
+      padding: 2px 0;
+    }
+
+    .add-input::placeholder {
+      color: var(--muted);
+    }
+
+    .empty-state {
+      padding: 24px 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 20px;
+    }
+
+    .error-banner {
+      margin: 6px 0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: rgba(220, 50, 50, 0.12);
+      color: #e05252;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app">Loading Workflowy...</div>
+
+  <script>
+    const state = {
+      configured: true,
+      nodes: [],
+      error: null,
+      loading: false,
+      query: '',
+      zoomId: localStorage.getItem('wf_zoom_id') || null,
+      expanded: JSON.parse(localStorage.getItem('wf_expanded') || '{}'),
+      editingId: null,
+      addingParentId: null
+    }
+
+    async function callWorker(name, input) {
+      return await window.orca.host.call('plugin.request', { name, input })
+    }
+
+    function saveExpanded() {
+      localStorage.setItem('wf_expanded', JSON.stringify(state.expanded))
+    }
+
+    function setZoom(id) {
+      state.zoomId = id
+      if (id) localStorage.setItem('wf_zoom_id', id)
+      else localStorage.removeItem('wf_zoom_id')
+      render()
+    }
+
+    async function loadOutline(refresh = false) {
+      state.loading = true
+      render()
+      try {
+        const res = await callWorker('wf.load', { refresh })
+        state.configured = res.configured
+        state.nodes = res.nodes || []
+        state.error = res.error || null
+      } catch (err) {
+        state.error = err.message || String(err)
+      } finally {
+        state.loading = false
+        render()
+      }
+    }
+
+    async function toggleExpand(node) {
+      const isExp = !!state.expanded[node.id]
+      if (isExp) {
+        state.expanded[node.id] = false
+        saveExpanded()
+        render()
+        return
+      }
+      state.expanded[node.id] = true
+      saveExpanded()
+      if (!node.children || node.children.length === 0) {
+        state.loading = true
+        render()
+        try {
+          const res = await callWorker('wf.loadChildren', { parentId: node.id })
+          state.nodes = res.nodes || state.nodes
+          state.error = res.error || null
+        } finally {
+          state.loading = false
+        }
+      }
+      render()
+    }
+
+    async function zoomInto(node) {
+      setZoom(node.id)
+      if (!node.children || node.children.length === 0) {
+        state.loading = true
+        render()
+        try {
+          const res = await callWorker('wf.loadChildren', { parentId: node.id })
+          state.nodes = res.nodes || state.nodes
+        } finally {
+          state.loading = false
+          render()
+        }
+      }
+    }
+
+    async function createNode(parentId, name) {
+      const trimmed = name.trim()
+      if (!trimmed) return
+      state.loading = true
+      render()
+      try {
+        const res = await callWorker('wf.createNode', { parentId: parentId || undefined, name: trimmed })
+        state.nodes = res.nodes || state.nodes
+        state.error = res.error || null
+      } finally {
+        state.loading = false
+        state.addingParentId = null
+        render()
+      }
+    }
+
+    async function updateNode(id, name) {
+      const trimmed = name.trim()
+      state.editingId = null
+      if (!trimmed) {
+        render()
+        return
+      }
+      state.loading = true
+      render()
+      try {
+        const res = await callWorker('wf.updateNode', { id, name: trimmed })
+        state.nodes = res.nodes || state.nodes
+        state.error = res.error || null
+      } finally {
+        state.loading = false
+        render()
+      }
+    }
+
+    async function toggleComplete(id, completed) {
+      state.loading = true
+      render()
+      try {
+        const res = await callWorker('wf.toggleComplete', { id, completed })
+        state.nodes = res.nodes || state.nodes
+        state.error = res.error || null
+      } finally {
+        state.loading = false
+        render()
+      }
+    }
+
+    async function deleteNode(id) {
+      state.loading = true
+      render()
+      try {
+        const res = await callWorker('wf.deleteNode', { id })
+        state.nodes = res.nodes || state.nodes
+        state.error = res.error || null
+      } finally {
+        state.loading = false
+        render()
+      }
+    }
+
+    function findNodePath(nodes, targetId, path = []) {
+      for (const n of nodes) {
+        const next = [...path, n]
+        if (n.id === targetId) return next
+        if (n.children && n.children.length) {
+          const found = findNodePath(n.children, targetId, next)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    function filterNodes(nodes, q) {
+      const query = q.trim().toLowerCase()
+      if (!query) return nodes
+      const out = []
+      for (const n of nodes) {
+        const children = filterNodes(n.children || [], query)
+        if ((n.name || '').toLowerCase().includes(query) || children.length > 0) {
+          out.push({ ...n, children })
+        }
+      }
+      return out
+    }
+
+    function el(tag, attrs = {}, children = []) {
+      const node = document.createElement(tag)
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === 'className') node.className = v
+        else if (k.startsWith('on') && typeof v === 'function') {
+          node.addEventListener(k.slice(2).toLowerCase(), v)
+        } else if (v !== null && v !== undefined) {
+          node.setAttribute(k, v)
+        }
+      }
+      for (const c of children) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c))
+        else if (c) node.appendChild(c)
+      }
+      return node
+    }
+
+    function renderNodeTree(node) {
+      const isExp = !!state.query.trim() || !!state.expanded[node.id]
+      const isEditing = state.editingId === node.id
+      const isAddingChild = state.addingParentId === node.id
+
+      const expandBtn = el('button', {
+        className: 'expand-btn',
+        title: isExp ? 'Collapse' : 'Expand',
+        onClick: () => toggleExpand(node)
+      }, [isExp ? '▾' : '▸'])
+
+      const bulletBtn = el('button', {
+        className: 'bullet-btn',
+        title: 'Zoom in',
+        onClick: () => zoomInto(node)
+      }, [el('span', { className: 'bullet-dot' })])
+
+      let contentEl
+      if (isEditing) {
+        const input = el('input', {
+          className: 'node-edit-input',
+          value: node.name || '',
+          onKeydown: (e) => {
+            if (e.key === 'Enter') updateNode(node.id, input.value)
+            else if (e.key === 'Escape') {
+              state.editingId = null
+              render()
+            }
+          },
+          onBlur: () => updateNode(node.id, input.value)
+        })
+        setTimeout(() => input.focus(), 0)
+        contentEl = el('div', { className: 'node-content' }, [input])
+      } else {
+        contentEl = el('div', {
+          className: `node-content ${node.completed ? 'completed' : ''}`,
+          onClick: () => {
+            state.editingId = node.id
+            render()
+          }
+        }, [node.name || '(untitled)'])
+      }
+
+      const actions = el('div', { className: 'node-actions' }, [
+        el('button', {
+          className: 'action-btn',
+          title: node.completed ? 'Uncomplete' : 'Complete',
+          onClick: () => toggleComplete(node.id, !node.completed)
+        }, [node.completed ? '↺' : '✓']),
+        el('button', {
+          className: 'action-btn',
+          title: 'Add child',
+          onClick: () => {
+            state.addingParentId = isAddingChild ? null : node.id
+            render()
+          }
+        }, ['+']),
+        el('button', {
+          className: 'action-btn',
+          title: 'Delete',
+          onClick: () => deleteNode(node.id)
+        }, ['×'])
+      ])
+
+      const row = el('div', { className: 'node-row' }, [expandBtn, bulletBtn, contentEl, actions])
+      const container = el('div', {}, [row])
+
+      if (isAddingChild) {
+        const childInput = el('input', {
+          className: 'add-input',
+          placeholder: 'New child node...',
+          onKeydown: (e) => {
+            if (e.key === 'Enter') createNode(node.id, childInput.value)
+            else if (e.key === 'Escape') {
+              state.addingParentId = null
+              render()
+            }
+          }
+        })
+        setTimeout(() => childInput.focus(), 0)
+        container.appendChild(el('div', { className: 'children-wrap' }, [
+          el('div', { className: 'add-row' }, [childInput])
+        ]))
+      }
+
+      if (isExp && node.children && node.children.length > 0) {
+        const wrap = el('div', { className: 'children-wrap' }, node.children.map(renderNodeTree))
+        container.appendChild(wrap)
+      }
+
+      return container
+    }
+
+    function render() {
+      const root = document.getElementById('app')
+      root.innerHTML = ''
+
+      const searchInput = el('input', {
+        className: 'search-input',
+        placeholder: 'Search Workflowy...',
+        value: state.query,
+        onInput: (e) => {
+          state.query = e.target.value
+          render()
+        }
+      })
+
+      const refreshBtn = el('button', {
+        className: 'icon-btn',
+        onClick: () => loadOutline(true)
+      }, [state.loading ? 'Syncing...' : '↻ Refresh'])
+
+      root.appendChild(el('div', { className: 'topbar' }, [searchInput, refreshBtn]))
+
+      if (!state.configured) {
+        root.appendChild(el('div', { className: 'empty-state' }, [
+          'Workflowy API Key is not configured. Open Orca Settings → Plugins → Workflowy and paste your API key.'
+        ]))
+        return
+      }
+
+      if (state.error) {
+        root.appendChild(el('div', { className: 'error-banner' }, [`Error: ${state.error}`]))
+      }
+
+      const zoomPath = state.zoomId ? findNodePath(state.nodes, state.zoomId) : null
+      const zoomedNode = zoomPath ? zoomPath[zoomPath.length - 1] : null
+
+      if (zoomPath) {
+        const crumbs = [
+          el('span', { className: 'crumb', onClick: () => setZoom(null) }, ['Home'])
+        ]
+        for (const item of zoomPath) {
+          crumbs.push(el('span', {}, ['›']))
+          crumbs.push(el('span', { className: 'crumb', onClick: () => setZoom(item.id) }, [item.name || '(untitled)']))
+        }
+        root.appendChild(el('div', { className: 'breadcrumbs' }, crumbs))
+        root.appendChild(el('div', { className: 'zoom-title' }, [zoomedNode.name || '(untitled)']))
+      }
+
+      const baseNodes = zoomedNode ? (zoomedNode.children || []) : state.nodes
+      const visible = filterNodes(baseNodes, state.query)
+
+      if (visible.length === 0) {
+        root.appendChild(el('div', { className: 'empty-state' }, [
+          state.query.trim() ? 'No matching nodes.' : 'No nodes.'
+        ]))
+      } else {
+        for (const n of visible) {
+          root.appendChild(renderNodeTree(n))
+        }
+      }
+
+      const addInput = el('input', {
+        className: 'add-input',
+        placeholder: zoomedNode ? `Add item under "${zoomedNode.name}"...` : 'Add new item...',
+        onKeydown: (e) => {
+          if (e.key === 'Enter') {
+            createNode(zoomedNode ? zoomedNode.id : null, addInput.value)
+          }
+        }
+      })
+      root.appendChild(el('div', { className: 'add-row' }, [addInput]))
+    }
+
+    loadOutline(false)
+  </script>
+</body>
+</html>
