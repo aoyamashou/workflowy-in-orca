@@ -647,7 +647,7 @@
       const refreshBtn = el('button', {
         className: 'icon-btn',
         onClick: () => loadOutline(true)
-      }, [state.loading ? 'Syncing...' : '↻ Refresh'])
+      }, [state.loading ? 'Syncing...' : '↻ Sync'])
 
       root.appendChild(el('div', { className: 'topbar' }, [searchInput, refreshBtn]))
 
