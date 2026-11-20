@@ -1,0 +1,48 @@
+{
+  "manifestVersion": 2,
+  "id": "workflowy-sidebar",
+  "name": "Workflowy",
+  "version": "0.1.0",
+  "description": "Browse and edit your Workflowy outline in the Orca sidebar.",
+  "engines": {
+    "orca": ">=1.4.246"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "src/worker.ts",
+  "contributes": {
+    "panels": [
+      {
+        "id": "workflowy-sidebar",
+        "title": "Workflowy",
+        "icon": "file-text",
+        "entry": "src/panel.tsx",
+        "ui": "components"
+      }
+    ],
+    "settings": [
+      {
+        "key": "apiKey",
+        "title": "Workflowy API Key",
+        "description": "Bearer API key from https://workflowy.com/api-key/",
+        "type": "string",
+        "default": ""
+      },
+      {
+        "key": "rootNodeId",
+        "title": "Root Node ID (Optional)",
+        "description": "Leave empty to load all top-level nodes, or specify a node ID.",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "kind": "storage:own"
+    },
+    {
+      "kind": "settings:own"
+    }
+  ]
+}
