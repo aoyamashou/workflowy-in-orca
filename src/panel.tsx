@@ -167,7 +167,6 @@ function renderNode(node: WfNode, depth: number, query: string) {
           </Row>
         ) : (
           <Row gap="xs" align="center">
-            <Text muted={Boolean(node.completed)}>{node.name || '(untitled)'}</Text>
             <Button
               size="xs"
               variant="ghost"
@@ -176,7 +175,7 @@ function renderNode(node: WfNode, depth: number, query: string) {
                 set(editingText, node.name)
               }}
             >
-              Edit
+              {node.completed ? `✓ ${node.name || '(untitled)'}` : node.name || '(untitled)'}
             </Button>
             <Button
               size="xs"
