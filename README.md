@@ -1,8 +1,8 @@
-# Workflowy for Orca
+# Workflowy in Orca
 
 Browse, search, and edit your **Workflowy** outline directly inside the **Orca** sidebar.
 
-![Workflowy for Orca](assets/hero.png)
+![Workflowy in Orca](assets/hero.png)
 
 ## Features
 
