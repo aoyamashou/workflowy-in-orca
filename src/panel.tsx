@@ -19,6 +19,7 @@ const state = atom<WfLoadResult>({ configured: true, nodes: [] })
 const loading = atom<boolean>(false)
 const searchQuery = atom<string>('')
 const expandedIds = atom<Record<string, boolean>>('wf_expanded', {}, { persist: 'plugin' })
+const zoomedNodeId = atom<string | null>('wf_zoomed_id', null, { persist: 'plugin' })
 const newRootText = atom<string>('')
 const editingId = atom<string | null>(null)
 const editingText = atom<string>('')
@@ -35,17 +36,42 @@ async function refreshOutline(force = false): Promise<void> {
   }
 }
 
-async function createRootNode(): Promise<void> {
+async function createRootNode(parentId?: string | null): Promise<void> {
   const name = read(newRootText).trim()
   if (!name) return
   set(newRootText, '')
   set(loading, true)
   try {
-    const res = await plugin.request('wf.createNode', { name })
+    const res = await plugin.request('wf.createNode', { parentId: parentId ?? undefined, name })
     set(state, res)
   } finally {
     set(loading, false)
   }
+}
+
+async function zoomInto(node: WfNode): Promise<void> {
+  set(zoomedNodeId, node.id)
+  if (!node.children || node.children.length === 0) {
+    set(loading, true)
+    try {
+      const res = await plugin.request('wf.loadChildren', { parentId: node.id })
+      set(state, res)
+    } finally {
+      set(loading, false)
+    }
+  }
+}
+
+function findNodePath(nodes: WfNode[], targetId: string, path: WfNode[] = []): WfNode[] | null {
+  for (const node of nodes) {
+    const nextPath = [...path, node]
+    if (node.id === targetId) return nextPath
+    if (node.children && node.children.length > 0) {
+      const found = findNodePath(node.children, targetId, nextPath)
+      if (found) return found
+    }
+  }
+  return null
 }
 
 async function createChildNode(parentId: string): Promise<void> {
@@ -142,6 +168,9 @@ function renderNode(node: WfNode, depth: number, query: string) {
         <Button variant="ghost" size="xs" onPress={() => void toggleExpand(node)}>
           {expanded ? '▾' : '▸'}
         </Button>
+        <Button variant="ghost" size="xs" onPress={() => void zoomInto(node)}>
+          •
+        </Button>
         <Button
           variant="ghost"
           size="xs"
@@ -223,7 +252,11 @@ export default function Panel() {
   const data = read(state)
   const isLoading = read(loading)
   const query = read(searchQuery)
-  const visibleNodes = filterNodes(data.nodes, query)
+  const currentZoomId = read(zoomedNodeId)
+  const zoomPath = currentZoomId ? findNodePath(data.nodes, currentZoomId) : null
+  const zoomedNode = zoomPath ? zoomPath[zoomPath.length - 1] : null
+  const baseNodes = zoomedNode ? (zoomedNode.children ?? []) : data.nodes
+  const visibleNodes = filterNodes(baseNodes, query)
 
   return (
     <Stack gap="sm">
@@ -251,6 +284,26 @@ export default function Panel() {
         </Stack>
       ) : (
         <Stack gap="sm">
+          {zoomPath && (
+            <Row gap="xs" align="center">
+              <Button size="xs" variant="ghost" onPress={() => set(zoomedNodeId, null)}>
+                Home
+              </Button>
+              {zoomPath.map((item) => (
+                <Row key={item.id} gap="xs" align="center">
+                  <Text muted size="xs">/</Text>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onPress={() => set(zoomedNodeId, item.id)}
+                  >
+                    {item.name || '(untitled)'}
+                  </Button>
+                </Row>
+              ))}
+            </Row>
+          )}
+
           <Row gap="xs">
             <Input
               label="Search outline"
@@ -264,14 +317,14 @@ export default function Panel() {
 
           <Row gap="xs">
             <Input
-              label="New top-level node"
+              label="New node"
               labelHidden
-              placeholder="Add top-level node..."
+              placeholder={zoomedNode ? `Add under "${zoomedNode.name}"...` : 'Add top-level node...'}
               value={read(newRootText)}
               onChange={(v: string) => set(newRootText, v)}
-              onSubmit={() => void createRootNode()}
+              onSubmit={() => void createRootNode(zoomedNode?.id)}
             />
-            <Button size="xs" onPress={() => void createRootNode()}>
+            <Button size="xs" onPress={() => void createRootNode(zoomedNode?.id)}>
               Add
             </Button>
           </Row>
