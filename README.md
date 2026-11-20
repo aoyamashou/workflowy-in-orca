@@ -1,5 +1,7 @@
 # Workflowy in Orca
 
+[English](README.md) | [中文文档](README.zh-CN.md)
+
 Browse, search, and edit your **Workflowy** outline directly inside the **Orca** sidebar.
 
 ![Workflowy in Orca](assets/hero.png)
