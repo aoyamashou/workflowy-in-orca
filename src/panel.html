@@ -288,7 +288,8 @@
     }
 
     async function callWorker(name, input) {
-      return await window.orca.host.call('plugin.request', { name, input })
+      const res = await window.orca.host.call('plugin.request', { name, input })
+      return res && res.output ? res.output : res
     }
 
     function saveExpanded() {
