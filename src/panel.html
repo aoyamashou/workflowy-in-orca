@@ -564,12 +564,7 @@
             state.addingParentId = isAddingChild ? null : node.id
             render()
           }
-        }, ['+']),
-        el('button', {
-          className: 'action-btn',
-          title: 'Delete',
-          onClick: () => deleteNode(node.id)
-        }, ['×'])
+        }, ['+'])
       ])
 
       const row = el('div', {
