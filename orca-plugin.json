@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "workflowy-sidebar",
   "name": "Workflowy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Browse and edit your Workflowy outline in the Orca sidebar.",
   "engines": {
     "orca": ">=1.4.246"
