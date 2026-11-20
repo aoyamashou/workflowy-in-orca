@@ -1,14 +1,29 @@
-# Wf Plugin Scaffold
+# Workflowy for Orca
 
-A right-sidebar panel (`src/panel.tsx`) and the plugin's own worker (`src/worker.ts`). The panel asks with `plugin.request`, the worker answers with `orca.panels.handle`, keeps the total in `orca.storage` and tells every open panel with `orca.panels.post`; `src/protocol.ts` types both sides. Orca transpiles both files when they load, so there is no build step: save and the panel or worker reloads (a worker reload drops its in-memory state, so keep what must last in storage). `orca plugin test .` runs `src/panel.test.tsx` and `src/worker.test.ts` in Node with `orca/testing`, and `orca plugin check .` renders the panel with the worker in each `src/panel.check.ts` scenario; `npx tsc -p .` type-checks against the typings `orca plugin types .` writes to `.orca/types/`. With the folder loaded, `orca plugin dev request . counter.add --data '{"by":1}'` calls the worker as the panel does.
+Browse, search, and edit your **Workflowy** outline directly inside the **Orca** sidebar.
 
-## Develop
+![Workflowy for Orca](assets/hero.png)
 
-```sh
-orca plugin validate .
-orca plugin dev watch .    # loads this folder into Orca and prints its logs and reloads; Ctrl-C unloads it
-```
+## Features
 
-Orca names the publisher after where the plugin is installed from: the GitHub or GitLab owner of
-its repository, or `local` for a folder. See
-https://github.com/stablyai/orca/blob/main/docs/reference/plugin-authoring.md.
+- **1:1 Workflowy Experience**: Clean bullet-list typography, tree guide lines, and theme adaptation (Light & Dark).
+- **Zoom Focus Mode**: Click any bullet dot (`•`) to zoom into a node with breadcrumb navigation (`Home › ...`).
+- **Inline Editing**: Click any node text to edit inline (`Enter` to save, `Esc` to cancel).
+- **Drag & Drop**: Drag a bullet dot to reorder siblings or nest under another node.
+- **Quick Actions**: Expand/collapse lazily, toggle completion (`✓`), add child nodes (`+`), and real-time search.
+- **Local Cache**: Cached via `orca.storage` for instant startup, with manual refresh (`↻ Refresh`).
+
+## Screenshot
+
+![Sidebar Screenshot](assets/screenshot.jpg)
+
+## Setup
+
+1. Generate your personal API key at [workflowy.com/api-key](https://workflowy.com/api-key/).
+2. Open **Orca Settings → Plugins → Workflowy**.
+3. Paste your **Workflowy API Key** (and optionally set a **Root Node ID** to scope the sidebar to a specific node).
+4. Open the **Workflowy** panel in the Orca sidebar.
+
+## License
+
+[MIT](LICENSE)
