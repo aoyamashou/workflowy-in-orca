@@ -296,6 +296,7 @@
       query: '',
       zoomId: localStorage.getItem('wf_zoom_id') || null,
       expanded: JSON.parse(localStorage.getItem('wf_expanded') || '{}'),
+      hideCompleted: localStorage.getItem('wf_hide_completed') !== 'false',
       editingId: null,
       addingParentId: null,
       draggedId: null
@@ -466,13 +467,13 @@
       return null
     }
 
-    function filterNodes(nodes, q) {
+    function filterNodes(nodes, q, hideCompleted) {
       const query = q.trim().toLowerCase()
-      if (!query) return nodes
       const out = []
       for (const n of nodes) {
-        const children = filterNodes(n.children || [], query)
-        if ((n.name || '').toLowerCase().includes(query) || children.length > 0) {
+        if (hideCompleted && n.completed) continue
+        const children = filterNodes(n.children || [], query, hideCompleted)
+        if (!query || (n.name || '').toLowerCase().includes(query) || children.length > 0) {
           out.push({ ...n, children })
         }
       }
@@ -644,12 +645,22 @@
         }
       })
 
+      const toggleCompletedBtn = el('button', {
+        className: 'icon-btn',
+        title: state.hideCompleted ? 'Show completed nodes' : 'Hide completed nodes',
+        onClick: () => {
+          state.hideCompleted = !state.hideCompleted
+          localStorage.setItem('wf_hide_completed', String(state.hideCompleted))
+          render()
+        }
+      }, [state.hideCompleted ? '✓ Hidden' : '✓ Shown'])
+
       const refreshBtn = el('button', {
         className: 'icon-btn',
         onClick: () => loadOutline(true)
       }, [state.loading ? 'Syncing...' : '↻ Sync'])
 
-      root.appendChild(el('div', { className: 'topbar' }, [searchInput, refreshBtn]))
+      root.appendChild(el('div', { className: 'topbar' }, [searchInput, toggleCompletedBtn, refreshBtn]))
 
       if (!state.configured) {
         root.appendChild(el('div', { className: 'empty-state' }, [
@@ -678,7 +689,7 @@
       }
 
       const baseNodes = zoomedNode ? (zoomedNode.children || []) : state.nodes
-      const visible = filterNodes(baseNodes, state.query)
+      const visible = filterNodes(baseNodes, state.query, state.hideCompleted)
 
       if (visible.length === 0) {
         root.appendChild(el('div', { className: 'empty-state' }, [
