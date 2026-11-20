@@ -119,6 +119,19 @@
       background: var(--hover);
     }
 
+    .node-row.drop-before {
+      box-shadow: inset 0 2px 0 0 var(--accent);
+    }
+
+    .node-row.drop-after {
+      box-shadow: inset 0 -2px 0 0 var(--accent);
+    }
+
+    .node-row.drop-inside {
+      background: rgba(75, 139, 244, 0.14);
+      box-shadow: inset 24px 0 0 0 rgba(75, 139, 244, 0.25), inset 0 -2px 0 0 var(--accent);
+    }
+
     .expand-btn {
       width: 16px;
       height: 22px;
@@ -284,7 +297,8 @@
       zoomId: localStorage.getItem('wf_zoom_id') || null,
       expanded: JSON.parse(localStorage.getItem('wf_expanded') || '{}'),
       editingId: null,
-      addingParentId: null
+      addingParentId: null,
+      draggedId: null
     }
 
     async function callWorker(name, input) {
@@ -419,6 +433,27 @@
       }
     }
 
+    async function moveNode(id, parentId, position) {
+      if (!id || id === parentId) return
+      state.loading = true
+      render()
+      try {
+        const res = await callWorker('wf.moveNode', { id, parentId, position })
+        state.nodes = res.nodes || state.nodes
+        state.error = res.error || null
+      } catch (err) {
+        state.error = err.message || String(err)
+      } finally {
+        state.loading = false
+        render()
+      }
+    }
+
+    function isDescendant(nodes, ancestorId, targetId) {
+      const path = findNodePath(nodes, targetId)
+      return path ? path.some((n) => n.id === ancestorId) : false
+    }
+
     function findNodePath(nodes, targetId, path = []) {
       for (const n of nodes) {
         const next = [...path, n]
@@ -461,7 +496,7 @@
       return node
     }
 
-    function renderNodeTree(node) {
+    function renderNodeTree(node, parentId = null, index = 0) {
       const isExp = !!state.query.trim() || !!state.expanded[node.id]
       const isEditing = state.editingId === node.id
       const isAddingChild = state.addingParentId === node.id
@@ -474,7 +509,19 @@
 
       const bulletBtn = el('button', {
         className: 'bullet-btn',
-        title: 'Zoom in',
+        title: 'Click to zoom · Drag to move',
+        draggable: 'true',
+        onDragstart: (e) => {
+          state.draggedId = node.id
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', node.id)
+        },
+        onDragend: () => {
+          state.draggedId = null
+          document.querySelectorAll('.drop-before,.drop-after,.drop-inside').forEach((n) => {
+            n.classList.remove('drop-before', 'drop-after', 'drop-inside')
+          })
+        },
         onClick: () => zoomInto(node)
       }, [el('span', { className: 'bullet-dot' })])
 
@@ -525,7 +572,41 @@
         }, ['×'])
       ])
 
-      const row = el('div', { className: 'node-row' }, [expandBtn, bulletBtn, contentEl, actions])
+      const row = el('div', {
+        className: 'node-row',
+        onDragover: (e) => {
+          if (!state.draggedId || state.draggedId === node.id) return
+          if (isDescendant(state.nodes, state.draggedId, node.id)) return
+          e.preventDefault()
+          const rect = row.getBoundingClientRect()
+          const ratio = (e.clientY - rect.top) / rect.height
+          row.classList.remove('drop-before', 'drop-after', 'drop-inside')
+          if (ratio < 0.25) row.classList.add('drop-before')
+          else if (ratio > 0.75) row.classList.add('drop-after')
+          else row.classList.add('drop-inside')
+        },
+        onDragleave: () => {
+          row.classList.remove('drop-before', 'drop-after', 'drop-inside')
+        },
+        onDrop: (e) => {
+          e.preventDefault()
+          const draggedId = state.draggedId
+          row.classList.remove('drop-before', 'drop-after', 'drop-inside')
+          if (!draggedId || draggedId === node.id) return
+          if (isDescendant(state.nodes, draggedId, node.id)) return
+          const rect = row.getBoundingClientRect()
+          const ratio = (e.clientY - rect.top) / rect.height
+          if (ratio < 0.25) {
+            moveNode(draggedId, parentId, index)
+          } else if (ratio > 0.75) {
+            moveNode(draggedId, parentId, index + 1)
+          } else {
+            state.expanded[node.id] = true
+            saveExpanded()
+            moveNode(draggedId, node.id, 'top')
+          }
+        }
+      }, [expandBtn, bulletBtn, contentEl, actions])
       const container = el('div', {}, [row])
 
       if (isAddingChild) {
@@ -547,7 +628,7 @@
       }
 
       if (isExp && node.children && node.children.length > 0) {
-        const wrap = el('div', { className: 'children-wrap' }, node.children.map(renderNodeTree))
+        const wrap = el('div', { className: 'children-wrap' }, node.children.map((c, i) => renderNodeTree(c, node.id, i)))
         container.appendChild(wrap)
       }
 
@@ -609,8 +690,9 @@
           state.query.trim() ? 'No matching nodes.' : 'No nodes.'
         ]))
       } else {
-        for (const n of visible) {
-          root.appendChild(renderNodeTree(n))
+        const rootParentId = zoomedNode ? zoomedNode.id : null
+        for (let i = 0; i < visible.length; i++) {
+          root.appendChild(renderNodeTree(visible[i], rootParentId, i))
         }
       }
 

@@ -33,6 +33,10 @@ declare module 'orca' {
       input: { id: string }
       output: WfLoadResult
     }
+    'wf.moveNode': {
+      input: { id: string; parentId?: string | null; position?: 'top' | 'bottom' | number }
+      output: WfLoadResult
+    }
   }
   interface PluginPanelEvents {
     'wf.updated': WfLoadResult

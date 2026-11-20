@@ -180,4 +180,19 @@ export default function activate(orca: OrcaWorkerApi): void {
     orca.panels.post('wf.updated', result)
     return result
   })
+
+  orca.panels.handle('wf.moveNode', async ({ id, parentId, position }) => {
+    const { apiKey } = await getConfig(orca)
+    if (!apiKey) return { configured: false, nodes: [] }
+    await wfFetch(apiKey, `/nodes/${encodeURIComponent(id)}/move`, {
+      method: 'POST',
+      body: JSON.stringify({
+        parent_id: parentId ?? null,
+        position: position ?? 'top'
+      })
+    })
+    const result = await loadOutline(orca, true)
+    orca.panels.post('wf.updated', result)
+    return result
+  })
 }
