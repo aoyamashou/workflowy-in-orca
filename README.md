@@ -29,3 +29,5 @@ Browse, search, and edit your **Workflowy** outline directly inside the **Orca**
 ## License
 
 [MIT](LICENSE)
+
+> Disclaimer: This plugin is an independent community-built project and is not affiliated with, endorsed by, or associated with Orca or Workflowy.

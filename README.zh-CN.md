@@ -29,3 +29,5 @@
 ## 开源协议
 
 [MIT](LICENSE)
+
+> 免责声明：本插件与 Orca 和 Workflowy 均无关系，为社区爱好者作品。
