@@ -13,7 +13,7 @@ Browse, search, and edit your **Workflowy** outline directly inside the **Orca**
 - **Inline Editing**: Click any node text to edit inline (`Enter` to save, `Esc` to cancel).
 - **Drag & Drop**: Drag a bullet dot to reorder siblings or nest under another node.
 - **Quick Actions**: Expand/collapse lazily, toggle completion (`✓`), add child nodes (`+`), and real-time search.
-- **Local Cache**: Cached via `orca.storage` for instant startup, with manual sync (`↻ Sync`).
+- **Local Cache & Auto Sync**: Cached via `orca.storage` for instant startup, manual sync (`↻ Sync`), and configurable auto-refresh interval (Off, 5m, 15m, 30m, 1h).
 
 ## Screenshot
 

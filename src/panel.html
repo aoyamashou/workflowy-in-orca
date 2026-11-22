@@ -41,19 +41,20 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      gap: 5px;
       margin-bottom: 10px;
     }
 
     .search-input {
       flex: 1;
+      min-width: 60px;
       height: 28px;
-      padding: 0 10px;
+      padding: 0 8px;
       border-radius: 6px;
       border: 1px solid var(--border);
       background: transparent;
       color: var(--fg);
-      font-size: 13px;
+      font-size: 12px;
       outline: none;
     }
 
@@ -63,17 +64,47 @@
 
     .icon-btn {
       height: 28px;
-      padding: 0 8px;
+      padding: 0 6px;
       border: none;
       border-radius: 6px;
       background: transparent;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 
     .icon-btn:hover {
       background: var(--hover);
+      color: var(--fg);
+    }
+
+    .interval-select {
+      height: 28px;
+      padding: 0 4px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+      outline: none;
+      flex-shrink: 0;
+    }
+
+    .interval-select:hover {
+      background: var(--hover);
+      color: var(--fg);
+    }
+
+    .interval-select:focus {
+      border-color: var(--accent);
+      color: var(--fg);
+    }
+
+    .interval-select option {
+      background: var(--bg);
       color: var(--fg);
     }
 
@@ -297,6 +328,7 @@
       zoomId: localStorage.getItem('wf_zoom_id') || null,
       expanded: JSON.parse(localStorage.getItem('wf_expanded') || '{}'),
       hideCompleted: localStorage.getItem('wf_hide_completed') !== 'false',
+      autoSyncInterval: parseInt(localStorage.getItem('wf_auto_sync_interval') || '0', 10),
       editingId: null,
       addingParentId: null,
       draggedId: null
@@ -484,6 +516,10 @@
       const node = document.createElement(tag)
       for (const [k, v] of Object.entries(attrs)) {
         if (k === 'className') node.className = v
+        else if (k === 'value') {
+          node.value = v
+          node.setAttribute(k, v)
+        }
         else if (k.startsWith('on') && typeof v === 'function') {
           node.addEventListener(k.slice(2).toLowerCase(), v)
         } else if (v !== null && v !== undefined) {
@@ -660,7 +696,26 @@
         onClick: () => loadOutline(true)
       }, [state.loading ? 'Syncing...' : '↻ Sync'])
 
-      root.appendChild(el('div', { className: 'topbar' }, [searchInput, toggleCompletedBtn, refreshBtn]))
+      const intervalSelect = el('select', {
+        className: 'interval-select',
+        title: '自动刷新时间',
+        value: String(state.autoSyncInterval),
+        onChange: (e) => {
+          state.autoSyncInterval = parseInt(e.target.value, 10)
+          localStorage.setItem('wf_auto_sync_interval', String(state.autoSyncInterval))
+          setupAutoSync()
+          render()
+        }
+      }, [
+        el('option', { value: '0' }, ['自动: 关']),
+        el('option', { value: '5' }, ['5分']),
+        el('option', { value: '15' }, ['15分']),
+        el('option', { value: '30' }, ['30分']),
+        el('option', { value: '60' }, ['1小时'])
+      ])
+      intervalSelect.value = String(state.autoSyncInterval)
+
+      root.appendChild(el('div', { className: 'topbar' }, [searchInput, toggleCompletedBtn, refreshBtn, intervalSelect]))
 
       if (!state.configured) {
         root.appendChild(el('div', { className: 'empty-state' }, [
@@ -714,7 +769,26 @@
       root.appendChild(el('div', { className: 'add-row' }, [addInput]))
     }
 
+    let autoSyncTimer = null
+
+    function setupAutoSync() {
+      if (autoSyncTimer) {
+        clearInterval(autoSyncTimer)
+        autoSyncTimer = null
+      }
+      const minutes = state.autoSyncInterval
+      if (minutes > 0) {
+        autoSyncTimer = setInterval(() => {
+          const isSearching = document.activeElement && document.activeElement.classList.contains('search-input')
+          if (!state.editingId && !state.addingParentId && !state.loading && !isSearching) {
+            loadOutline(true)
+          }
+        }, minutes * 60 * 1000)
+      }
+    }
+
     loadOutline(false)
+    setupAutoSync()
   </script>
 </body>
 </html>
